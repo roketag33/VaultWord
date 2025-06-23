@@ -1,5 +1,11 @@
 import { Button } from "@heroui/react";
-import { PlusIcon, KeyIcon, ShieldCheckIcon, FingerPrintIcon } from "@heroicons/react/24/outline";
+import { 
+  PlusIcon, 
+  KeyIcon, 
+  ShieldCheckIcon, 
+  FingerPrintIcon,
+  ArrowsRightLeftIcon 
+} from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { BiometricAuthModal } from "./BiometricAuthModal";
 import { useBiometric } from "../hooks/useBiometric";
@@ -7,122 +13,86 @@ import { useBiometric } from "../hooks/useBiometric";
 interface HeaderProps {
   onAddPassword: () => void;
   onGeneratePassword: () => void;
+  onImportExport: () => void;
 }
 
-export default function Header({ onAddPassword, onGeneratePassword }: HeaderProps) {
-  const [showBiometricAuth, setShowBiometricAuth] = useState(false);
+export default function Header({ onAddPassword, onGeneratePassword, onImportExport }: HeaderProps) {
+  const [isBiometricModalOpen, setIsBiometricModalOpen] = useState(false);
   const { isAvailable } = useBiometric();
-
-  const handleAddClick = () => {
-    console.log("Add button clicked");
-    onAddPassword();
-  };
-
-  const handleGenerateClick = () => {
-    console.log("Generate button clicked");
-    onGeneratePassword();
-  };
-
-  const handleBiometricTest = () => {
-    setShowBiometricAuth(true);
-  };
 
   const handleBiometricSuccess = () => {
     console.log("Authentification biométrique réussie !");
-    // Ici vous pouvez ajouter la logique après authentification
+    // Ici vous pouvez ajouter la logique après authentification réussie
   };
 
   return (
-    <header className="relative overflow-hidden gradient-header text-white">
-      {/* Formes décoratives */}
-      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-300 opacity-20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-300 opacity-20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
-      
-      <div className="relative z-10 container mx-auto px-6 py-12">
-        <div className="flex items-center justify-between">
+    <>
+      <header className="glass-card rounded-2xl p-6 mb-8 shadow-xl border border-white/20">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex items-center space-x-4">
-            {/* Logo avec effet moderne */}
-            <div className="relative">
-              <div className="glass rounded-2xl p-4 shadow-2xl">
-                <div className="gradient-primary rounded-xl p-2">
-                  <ShieldCheckIcon className="h-8 w-8 text-white" />
-                </div>
-              </div>
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-3 shadow-lg">
+              <ShieldCheckIcon className="h-8 w-8 text-white" />
             </div>
-            
-            <div className="space-y-1">
-              <h1 className="text-4xl font-bold text-white tracking-tight">
-                VaultWord
-              </h1>
-              <p className="text-blue-100 text-sm font-medium tracking-wide">
-                Gestionnaire de mots de passe sécurisé
-              </p>
-              <div className="flex items-center space-x-2 text-xs text-blue-200">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span>Chiffrement AES-256</span>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">VaultWord</h1>
+              <p className="text-gray-600">Gestionnaire de mots de passe sécurisé</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
-            {/* Bouton d'authentification biométrique */}
+          <div className="flex flex-wrap gap-3">
+            <Button
+              color="primary"
+              variant="flat"
+              startContent={<PlusIcon className="h-4 w-4" />}
+              onPress={onAddPassword}
+              className="bg-blue-100 hover:bg-blue-200 text-blue-700 transition-colors"
+            >
+              Ajouter
+            </Button>
+            
+            <Button
+              color="secondary"
+              variant="flat"
+              startContent={<KeyIcon className="h-4 w-4" />}
+              onPress={onGeneratePassword}
+              className="bg-purple-100 hover:bg-purple-200 text-purple-700 transition-colors"
+            >
+              Générer
+            </Button>
+
+            <Button
+              color="success"
+              variant="flat"
+              startContent={<ArrowsRightLeftIcon className="h-4 w-4" />}
+              onPress={onImportExport}
+              className="bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
+            >
+              Import/Export
+            </Button>
+            
             {isAvailable && (
               <Button
-                size="lg"
-                className="glass text-white hover:bg-white hover:bg-opacity-20 hover:scale-105 transition-all duration-300 shadow-xl"
-                startContent={<FingerPrintIcon className="h-5 w-5" />}
-                onPress={handleBiometricTest}
+                color="warning"
+                variant="flat"
+                startContent={<FingerPrintIcon className="h-4 w-4" />}
+                onPress={() => setIsBiometricModalOpen(true)}
+                className="bg-orange-100 hover:bg-orange-200 text-orange-700 transition-colors"
               >
-                <span className="font-semibold">Biométrie</span>
+                Biométrie
               </Button>
             )}
-            
-            <Button
-              size="lg"
-              className="glass text-white hover:bg-white hover:bg-opacity-20 hover:scale-105 transition-all duration-300 shadow-xl"
-              startContent={<PlusIcon className="h-5 w-5" />}
-              onPress={handleAddClick}
-            >
-              <span className="font-semibold">Ajouter</span>
-            </Button>
-            
-            <Button
-              size="lg"
-              className="gradient-primary text-white hover:opacity-90 hover:scale-105 transition-all duration-300 shadow-xl border-0"
-              startContent={<KeyIcon className="h-5 w-5" />}
-              onPress={handleGenerateClick}
-            >
-              <span className="font-semibold">Générateur</span>
-            </Button>
           </div>
         </div>
-        
-        {/* Indicateurs de statut */}
-        <div className="mt-8 flex items-center justify-center space-x-8 text-sm text-blue-100">
-          <div className="flex items-center space-x-2">
-            <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
-            <span>Stockage local sécurisé</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-            <span>Aucune donnée envoyée en ligne</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
-            <span>Générateur cryptographique</span>
-          </div>
-        </div>
-      </div>
+      </header>
 
-      {/* Modal d'authentification biométrique */}
-      <BiometricAuthModal
-        isOpen={showBiometricAuth}
-        onClose={() => setShowBiometricAuth(false)}
+      <BiometricAuthModal 
+        isOpen={isBiometricModalOpen}
+        onClose={() => setIsBiometricModalOpen(false)}
         onSuccess={handleBiometricSuccess}
         title="Test d'authentification biométrique"
         reason="Testez votre authentification biométrique"
         requireAuth={false}
       />
-    </header>
+    </>
   );
 } 

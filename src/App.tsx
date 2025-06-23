@@ -7,6 +7,7 @@ import Header from "./components/Header";
 import PasswordList from "./components/PasswordList";
 import AddPasswordModal from "./components/AddPasswordModal";
 import PasswordGeneratorModal from "./components/PasswordGeneratorModal";
+import ImportExportModal from "./components/ImportExportModal";
 
 interface Password {
   id: number;
@@ -38,6 +39,12 @@ function App() {
     isOpen: isGeneratorModalOpen, 
     onOpen: onGeneratorModalOpen, 
     onClose: onGeneratorModalClose 
+  } = useDisclosure();
+
+  const { 
+    isOpen: isImportExportModalOpen, 
+    onOpen: onImportExportModalOpen, 
+    onClose: onImportExportModalClose 
   } = useDisclosure();
 
   // Initialiser la base de données
@@ -132,6 +139,16 @@ function App() {
     }
   };
 
+  // Gestionnaire pour l'import réussi
+  const handleImportComplete = async (importedCount: number) => {
+    console.log(`✅ Import terminé: ${importedCount} mots de passe importés`);
+    // Recharger la liste des mots de passe
+    if (db) {
+      await loadPasswords(db);
+    }
+    onImportExportModalClose();
+  };
+
   // Gestionnaires pour les boutons du header
   const handleOpenAddModal = () => {
     console.log("Opening add modal");
@@ -143,56 +160,56 @@ function App() {
     onGeneratorModalOpen();
   };
 
-  return (
-    <div className="min-h-screen gradient-bg">
-      {/* Header avec glassmorphism */}
-      <Header 
-        onAddPassword={handleOpenAddModal}
-        onGeneratePassword={handleOpenGeneratorModal}
-      />
-      
-      {/* Contenu principal */}
-      <main className="relative z-10">
-        <div className="container mx-auto px-6 py-12">
-          {/* Indicateur de chargement */}
-          {isLoading && (
-            <div className="fixed top-4 right-4 z-50">
-              <div className="glass rounded-full px-4 py-2 shadow-lg">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-sm text-gray-700">Chargement...</span>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Liste des mots de passe */}
-          <div className="max-w-6xl mx-auto">
-            <PasswordList 
-              passwords={passwords} 
-              onDeletePassword={handleDeletePassword}
-            />
-          </div>
-        </div>
-      </main>
+  const handleOpenImportExportModal = () => {
+    console.log("Opening import/export modal");
+    onImportExportModalOpen();
+  };
 
-      {/* Modals */}
-      <AddPasswordModal
-        isOpen={isAddModalOpen}
-        onClose={onAddModalClose}
-        onAddPassword={handleAddPassword}
-      />
-      
-      <PasswordGeneratorModal
-        isOpen={isGeneratorModalOpen}
-        onClose={onGeneratorModalClose}
-      />
-      
-      {/* Éléments décoratifs de fond */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 opacity-20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 opacity-20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-200 opacity-10 rounded-full blur-3xl"></div>
+  if (isLoading && passwords.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-xl text-gray-600">Chargement de VaultWord...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="container mx-auto px-4 py-8">
+        <Header 
+          onAddPassword={handleOpenAddModal}
+          onGeneratePassword={handleOpenGeneratorModal}
+          onImportExport={handleOpenImportExportModal}
+        />
+        
+        <main>
+          <PasswordList 
+            passwords={passwords}
+            onDeletePassword={handleDeletePassword}
+          />
+        </main>
+
+        {/* Modals */}
+        <AddPasswordModal
+          isOpen={isAddModalOpen}
+          onClose={onAddModalClose}
+          onAddPassword={handleAddPassword}
+        />
+
+        <PasswordGeneratorModal
+          isOpen={isGeneratorModalOpen}
+          onClose={onGeneratorModalClose}
+        />
+
+        <ImportExportModal
+          isOpen={isImportExportModalOpen}
+          onClose={onImportExportModalClose}
+          onImportComplete={handleImportComplete}
+          existingPasswords={passwords}
+        />
       </div>
     </div>
   );

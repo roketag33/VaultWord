@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 use rand::Rng;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::{rand_core::OsRng, SaltString}};
 
+mod import_export;
+use import_export::*;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PasswordGeneratorOptions {
     pub length: u32,
@@ -64,16 +67,122 @@ async fn verify_password(password: String, hash: String) -> Result<bool, String>
     Ok(argon2.verify_password(password.as_bytes(), &parsed_hash).is_ok())
 }
 
+// Commandes d'import/export
+#[tauri::command]
+async fn parse_import_file(content: String, source: String, file_extension: String) -> Result<Vec<ImportedPassword>, String> {
+    match file_extension.to_lowercase().as_str() {
+        "csv" => parse_csv_content(&content, &source),
+        "json" => {
+            if source == "bitwarden" {
+                parse_bitwarden_json(&content)
+            } else {
+                Err("Format JSON non supporté pour cette source".to_string())
+            }
+        },
+        _ => Err(format!("Extension de fichier non supportée: {}", file_extension))
+    }
+}
+
+#[tauri::command]
+async fn validate_import_data(passwords: Vec<ImportedPassword>) -> Result<Vec<String>, String> {
+    Ok(validate_imported_passwords(&passwords))
+}
+
+#[tauri::command]
+async fn find_import_duplicates(passwords: Vec<ImportedPassword>) -> Result<Vec<(usize, usize)>, String> {
+    Ok(find_duplicates(&passwords))
+}
+
+#[tauri::command]
+async fn export_passwords_csv(passwords: Vec<ImportedPassword>, include_metadata: bool) -> Result<String, String> {
+    let mut csv_content = String::new();
+    
+    // Headers
+    if include_metadata {
+        csv_content.push_str("site,username,password,url,notes,folder\n");
+    } else {
+        csv_content.push_str("site,username,password\n");
+    }
+    
+    // Data
+    for password in passwords {
+        let site = escape_csv_field(&password.site);
+        let username = escape_csv_field(&password.username);
+        let password_field = escape_csv_field(&password.password);
+        
+        if include_metadata {
+            let url = escape_csv_field(&password.url.unwrap_or_default());
+            let notes = escape_csv_field(&password.notes.unwrap_or_default());
+            let folder = escape_csv_field(&password.folder.unwrap_or_default());
+            csv_content.push_str(&format!("{},{},{},{},{},{}\n", site, username, password_field, url, notes, folder));
+        } else {
+            csv_content.push_str(&format!("{},{},{}\n", site, username, password_field));
+        }
+    }
+    
+    Ok(csv_content)
+}
+
+#[tauri::command]
+async fn export_passwords_json(passwords: Vec<ImportedPassword>) -> Result<String, String> {
+    match serde_json::to_string_pretty(&passwords) {
+        Ok(json) => Ok(json),
+        Err(e) => Err(format!("Erreur lors de la sérialisation JSON: {}", e))
+    }
+}
+
+#[tauri::command]
+async fn save_export_file(app_handle: tauri::AppHandle, content: String, filename: String) -> Result<String, String> {
+    use tauri_plugin_dialog::DialogExt;
+    
+    // Ouvrir une boîte de dialogue pour choisir où sauvegarder
+    let file_path = app_handle
+        .dialog()
+        .file()
+        .set_file_name(&filename)
+        .blocking_save_file();
+    
+    match file_path {
+        Some(path) => {
+            // Convertir FilePath en PathBuf
+            let path_buf = path.as_path().unwrap();
+            
+            // Écrire le contenu dans le fichier
+            match std::fs::write(&path_buf, content) {
+                Ok(_) => Ok(path_buf.to_string_lossy().to_string()),
+                Err(e) => Err(format!("Erreur lors de l'écriture du fichier: {}", e))
+            }
+        },
+        None => Err("Sauvegarde annulée par l'utilisateur".to_string())
+    }
+}
+
+// Fonction utilitaire pour échapper les champs CSV
+fn escape_csv_field(field: &str) -> String {
+    if field.contains(',') || field.contains('"') || field.contains('\n') {
+        format!("\"{}\"", field.replace('"', "\"\""))
+    } else {
+        field.to_string()
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
-
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             generate_password,
             hash_password,
             verify_password,
+            parse_import_file,
+            validate_import_data,
+            find_import_duplicates,
+            export_passwords_csv,
+            export_passwords_json,
+            save_export_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
