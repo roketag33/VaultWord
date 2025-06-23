@@ -7,7 +7,7 @@ import { HeroUIProvider } from "@heroui/react";
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <HeroUIProvider>
-      <App />
+    <App />
     </HeroUIProvider>
   </React.StrictMode>,
 );

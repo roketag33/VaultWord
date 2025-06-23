@@ -1,5 +1,8 @@
 import { Button } from "@heroui/react";
-import { PlusIcon, KeyIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, KeyIcon, ShieldCheckIcon, FingerPrintIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { BiometricAuthModal } from "./BiometricAuthModal";
+import { useBiometric } from "../hooks/useBiometric";
 
 interface HeaderProps {
   onAddPassword: () => void;
@@ -7,6 +10,9 @@ interface HeaderProps {
 }
 
 export default function Header({ onAddPassword, onGeneratePassword }: HeaderProps) {
+  const [showBiometricAuth, setShowBiometricAuth] = useState(false);
+  const { isAvailable } = useBiometric();
+
   const handleAddClick = () => {
     console.log("Add button clicked");
     onAddPassword();
@@ -15,6 +21,15 @@ export default function Header({ onAddPassword, onGeneratePassword }: HeaderProp
   const handleGenerateClick = () => {
     console.log("Generate button clicked");
     onGeneratePassword();
+  };
+
+  const handleBiometricTest = () => {
+    setShowBiometricAuth(true);
+  };
+
+  const handleBiometricSuccess = () => {
+    console.log("Authentification biométrique réussie !");
+    // Ici vous pouvez ajouter la logique après authentification
   };
 
   return (
@@ -50,6 +65,18 @@ export default function Header({ onAddPassword, onGeneratePassword }: HeaderProp
           </div>
           
           <div className="flex items-center space-x-4">
+            {/* Bouton d'authentification biométrique */}
+            {isAvailable && (
+              <Button
+                size="lg"
+                className="glass text-white hover:bg-white hover:bg-opacity-20 hover:scale-105 transition-all duration-300 shadow-xl"
+                startContent={<FingerPrintIcon className="h-5 w-5" />}
+                onPress={handleBiometricTest}
+              >
+                <span className="font-semibold">Biométrie</span>
+              </Button>
+            )}
+            
             <Button
               size="lg"
               className="glass text-white hover:bg-white hover:bg-opacity-20 hover:scale-105 transition-all duration-300 shadow-xl"
@@ -86,6 +113,16 @@ export default function Header({ onAddPassword, onGeneratePassword }: HeaderProp
           </div>
         </div>
       </div>
+
+      {/* Modal d'authentification biométrique */}
+      <BiometricAuthModal
+        isOpen={showBiometricAuth}
+        onClose={() => setShowBiometricAuth(false)}
+        onSuccess={handleBiometricSuccess}
+        title="Test d'authentification biométrique"
+        reason="Testez votre authentification biométrique"
+        requireAuth={false}
+      />
     </header>
   );
 } 
